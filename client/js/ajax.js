@@ -2,10 +2,12 @@
 // req events are handled seperately, as we only care about them if they
 // are on the top of the log. See handleResponseJson().
 handlers = {
+    "joined"              : handle_joined,
     "resources_gained"    : handle_resources_gained,
     "hexes_placed"        : handle_hexes_placed,
     "settlement_built"    : handle_settlement_built,
-    "settlement_upgraded" : handle_settlement_upgraded
+    "settlement_upgraded" : handle_settlement_upgraded,
+    "road_built"          : handle_road_built
 }
 
 req_handlers = {
@@ -31,8 +33,22 @@ function promptRoad(isInitial) {
         drawRoadDetector(stage, valid[v][0],
                          valid[v][1], isInitial);
     }
+}
 
+function handle_joined(log_entry) {
+    var user = {};
+    user.id = log_entry.user
+    user.color = usercolors.pop();
+    gameboard.users[log_entry.user] = user;
+}
 
+function handle_road_built(log_entry) {
+    console.log("log reports road built");
+    insertRoad(log_entry.user, decompress(log_entry.vertex1),
+               decompress(log_entry.vertex2));
+
+    drawRoad(gameboard.users[log_entry.user].color, decompress(log_entry.vertex1),
+               decompress(log_entry.vertex2));
 }
 
 function handle_resources_gained(log_entry) {
@@ -50,9 +66,11 @@ function handle_hexes_placed(log_entry) {
 }
 
 function handle_settlement_built(log_entry) {
+    console.log("log reports settlement built");
     // TODO: register the settlement build in our global gamestate model
-    insertSettlement(log_entry.user, log_entry.vertex);
-    drawSettlement(log_entry.user, log_entry.vertex);
+    insertSettlement(log_entry.user, decompress(log_entry.vertex));
+    drawSettlement(gameboard.users[log_entry.user].color,
+            decompress(log_entry.vertex));
 }
 
 function handle_settlement_upgraded(log_entry) {
@@ -89,37 +107,46 @@ function makeAjaxRequest(url, params, callbackFunc) {
 function handleResponseJson(json) {
     var myJson = JSON.parse(json);
 
-    if(myJson.log && myJson.sequence && myJson.log.length > 0) {
 
-        // update our sequence number
-        sequenceNum = myJson.sequence;
+    img = new Image();
+    img.onload = function() {
 
-        // take care of everything else
-        var log = myJson.log;
 
-        for(var x = 0; x < myJson.log.length; x++) {
-            if (handlers[log[x].action]) {
-                handlers[log[x].action](log[x]);
+        if(myJson.log && myJson.sequence && myJson.log.length > 0) {
+
+            // update our sequence number
+            sequenceNum = myJson.sequence;
+
+            // take care of everything else
+            var log = myJson.log;
+
+            for(var x = 0; x < myJson.log.length; x++) {
+                if (handlers[log[x].action]) {
+                    handlers[log[x].action](log[x]);
+                }
             }
+
+            var top = myJson.log[myJson.log.length - 1];
+
+            // handle req_handlers if need be
+            if (req_handlers[top.action] && top.user == userID) {
+                req_handlers[top.action](top);
+            }
+
+            updateClient();
+
+        }
+        else {
+            console.log("Malformed json returned");
+
+            setTimeout("updateClient()",3000);
+            // stuff is really messed up, so go ahead and reload the page
+            //window.location.reload();
         }
 
-        var top = myJson.log[myJson.log.length - 1];
-
-        // handle req_handlers if need be
-        if (req_handlers[top.action] && top.user == userID) {
-            req_handlers[top.action](top);
-        }
-
-        updateClient();
-
     }
-    else {
-        console.log("Malformed json returned");
 
-        setTimeout("updateClient()",3000);
-        // stuff is really messed up, so go ahead and reload the page
-        //window.location.reload();
-    }
+    img.src = IMAGE_SOURCE;
 
 
 }
@@ -159,7 +186,8 @@ function makeSetupRequest(vertex, roadto) {
     makeAjaxRequest(HOSTNAME + "/setup",
                     "?game=" + gameID
                     + "&settlement=" + vertex
-                    + "&roadto=" + roadto
+                    + "&roadto=" + roadto,
+                    function(json) {}
                    );
     // clear 'em out!
     actionsMade = [];

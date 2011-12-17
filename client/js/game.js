@@ -1,27 +1,37 @@
 
 window.onload = function() {
 
-    handleGameJoin();
+    userID = $.cookie("user");
+    console.debug(userID);
 
-    initTicker();
-    initWhitespace();
-    initPlayerDisplay();
+    waitOnImage(handleGameJoin)
+            initTicker();
+            initWhitespace();
+            initPlayerDisplay();
 }
 
-function initBoard(hexes) {
-    // Init the drawing board
+function user(i) {
+    document.cookie = "user=" + i;
+    window.location.reload();
+}
 
-    //global
-    stage = new Kinetic.Stage("board", BOARD_SIZE, BOARD_SIZE);
+
+function waitOnImage(func) {
 
     var img = new Image();
     img.onload = function() {
-        dispWaterFrame(img, stage.getContext());
-        dispBoard(img, stage.getContext(), hexes);
+        func();
     }
 
-    //onload, then src.  Not the other way around
     img.src = IMAGE_SOURCE;
+}
+
+function initBoard(hexes) {
+
+    stage = new Kinetic.Stage("board", BOARD_SIZE, BOARD_SIZE);
+
+    dispWaterFrame(img, stage.getContext());
+    dispBoard(img, stage.getContext(), hexes);
 
 }
 

@@ -7,6 +7,7 @@
 function insertSettlement(user, vertex, isInitialBuild) {
     // make sure we're valid and a settlement doesn't exist
     // at that vertex yet.
+    console.log(gameboard.settlements[vertex]);
     if (isvalid(vertex) && !gameboard.settlements[vertex]) {
         if (hasSettlementResources() || isInitialBuild) {
             gameboard.settlements[vertex] =
@@ -14,11 +15,13 @@ function insertSettlement(user, vertex, isInitialBuild) {
                  "user" : userID};
             // record our action so we can push it up to the server
             console.log("Action: Settlement created");
-            actionsMade.push({"item" : "settlement", "vertex" : compress(vertex)});
         }
         if (!isInitialBuild && user == userID) {
             removeSettlementResources();
         }
+    } else {
+        console.log(gameboard.settlements[vertex]);
+        console.log("something reaaaaally weird happened");
     }
 }
 
@@ -29,9 +32,9 @@ function insertCity(user, vertex) {
         && gameboard.settlements[vertex].settlement == SETTLEMENT
         && gameboard.settlements[vertex].user == user) {
         if (hasCityResources()) {
-            gameboard.settlements[vertex] =
-                {"settlement" : CITY,
-                 "user" : userID};
+            // gameboard.settlements[vertex] =
+            //     {"settlement" : CITY,
+            //      "user" : userID};
 
             if (user == userID) {
                 removeCityResources();
@@ -52,9 +55,6 @@ function insertRoad(user, vertex1, vertex2, isInitialBuild) {
             gameboard.roads[vertex1 + "." + vertex2] = user;
 
             console.log("Action: road created");
-            actionsMade.push({"action" : "road",
-                              "vertex1" : compress(vertex1),
-                              "vertex2" : compress(vertex2)});
         }
 
         if (user == userID && hasRoadResources()) {
